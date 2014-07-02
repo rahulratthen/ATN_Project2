@@ -14,9 +14,11 @@ import java.util.*;
 public class MainClass {
     
     public HashSet<String> combinations;
+    public ArrayList<TableEntry> table;
     
     public MainClass()
     {
+        table = new ArrayList<>();
         combinations = new HashSet<>();
     }
     
@@ -40,13 +42,109 @@ public class MainClass {
         }
     }
     
+    public double getReliability(double prob)
+    {
+        table.clear();
+        int a[] = new int[10];
+        
+        for(int i=0;i<10;i++)
+        {
+            a[i]=i;
+        }
+        for(int i=0;i<10;i++)
+        {
+            combinations.clear();
+            getAllCombinations(a, i , "");
+            if(combinations.size()==1)
+            {
+                //First case when all edges are active
+                table.add(new TableEntry());
+            }
+            else
+            {
+                for(String s : combinations)
+                {
+                    Graph g = new Graph(5,prob);
+                    TableEntry t = new TableEntry();
+                    char badEdge[] = s.toCharArray();
+                    for(int j=0;j<s.length();j++)
+                    {
+                        int index = Character.getNumericValue(badEdge[j]);
+                        t.edgeNumber[index] = 0; //set as bad edge
+                        Edge e = g.edges.get(index);
+                        g.vertices.get(Character.getNumericValue(e.vertexA.name.charAt(1))).incidentEdges.remove(e);
+                        g.vertices.get(Character.getNumericValue(e.vertexB.name.charAt(1))).incidentEdges.remove(e);
+                    }
+                    g.computePaths(g.vertices.get(0));
+                    for(int k=0;k<g.vertices.size();k++)
+                    {
+                        List<Vertex> path = g.getShortestPathTo(g.vertices.get(k));
+                        if(path.get(path.size()-1).minDistance == Double.POSITIVE_INFINITY)
+                        {
+                            t.state = false;
+                            break;
+                        }
+                    }
+                    table.add(t);
+                }
+            }
+        }
+        TableEntry last = new TableEntry();
+        last.state = false;
+        for(int m=0;m<10;m++)
+        {
+            last.edgeNumber[m]=0;
+        }
+        table.add(last);
+        
+        //print the table
+        //printTable(table);
+        
+        return calculateReliability(table, prob);
+        
+    }
+    
+    public double calculateReliability(ArrayList<TableEntry> t, double prob)        
+    {
+        double reliability = 0.0;
+        for(TableEntry te : t)
+        {
+            if(te.state)
+            {
+                double product=1.0;
+                for(int i=0;i<10;i++)
+                {
+                    if(te.edgeNumber[i]==0)
+                     product = product*(1-prob);
+                    else
+                     product = product*prob;
+                }
+                reliability += product;      
+            }
+        }
+        
+        
+        return reliability;
+    }
+            
+    public void printTable(ArrayList<TableEntry> t)
+    {
+        int i=1;
+        //Now all states are calculated
+        for(TableEntry te : t)
+        {
+            System.out.println(i+++"   "+te.edgeNumber[0]+""+te.edgeNumber[1]+""+te.edgeNumber[2]+""+te.edgeNumber[3]+""+te.edgeNumber[4]+""+te.edgeNumber[5]+""+te.edgeNumber[6]+""+te.edgeNumber[7]+""+te.edgeNumber[8]+""+te.edgeNumber[9]+"   "+te.state);
+        }
+    }
+    
     public static void main(String[] args) {
-        Graph g = new Graph(5,0.1);
         MainClass m = new MainClass();
-        int a[] = {0,1,2,3,4};
+        for(double i=0.0;i<=1;i+=0.01)
+            System.out.println("Reliability when p = "+(double)Math.round(i*100)/100+" : "+(double)Math.round(m.getReliability((double)Math.round(i*100)/100)*1000)/1000);
+    /*    int a[] = {0,1,2,3,4};
         m.getAllCombinations(a, 4, "");
         System.out.println(m.combinations);
-    /*    Edge e = new Edge(g.vertices.get(0), g.vertices.get(4), 0.1, 1);
+        Edge e = new Edge(g.vertices.get(0), g.vertices.get(4), 0.1, 1);
         g.vertices.get(0).incidentEdges.remove(e);
         g.computePaths(g.vertices.get(0));
         for(int i=0;i<5;i++)
@@ -54,4 +152,19 @@ public class MainClass {
     */
             }
     
+}
+
+class TableEntry{
+    int edgeNumber[] = new int[10];
+    boolean state;
+    
+    //default: all edges are good and the system is up.
+    public TableEntry()
+    {
+        state = true;
+        for(int i=0;i<10;i++)
+        {
+            edgeNumber[i]=1;
+        }
+    }
 }
