@@ -42,7 +42,7 @@ public class MainClass {
         }
     }
     
-    public double getReliability(double prob)
+    public double getReliability(double prob, int scenario)
     {
         table.clear();
         int a[] = new int[10];
@@ -100,8 +100,56 @@ public class MainClass {
         //print the table
         //printTable(table);
         
+        if(scenario == 2)
+        {
+            flipAndCalculate(table,prob);
+            
+        }
+        
         return calculateReliability(table, prob);
         
+    }
+    
+    public void flipAndCalculate(ArrayList<TableEntry> t, double prob)
+    {
+        for(int k=0;k<100;k++)
+        {
+            double reliability = 0.0;
+            for(int n=0;n<100;n++)
+            {
+                HashSet<Integer> randIndices = getRandomIndices(k);
+                //flip
+                for(int index : randIndices)
+                {
+                    t.get(index).state = !t.get(index).state;
+                }
+                //calculate
+                reliability += calculateReliability(t, prob);
+                //flip it back to original
+                for(int index : randIndices)
+                {
+                    t.get(index).state = !t.get(index).state;
+                }
+            }
+            System.out.println("Reliability when p=0.95 and k="+k+" is "+(double)Math.round(reliability/100.0*10000)/10000);
+            //System.out.println((double)Math.round(reliability/100.0*10000)/10000);
+        }
+        
+        //printTable(t);
+        System.exit(0);
+    }
+    
+    public HashSet getRandomIndices(int i)
+    {
+        HashSet<Integer> hs = new HashSet<Integer>();
+        Random rand = new Random();
+        do
+        {
+            int index = rand.nextInt(1024);
+            if(!hs.contains(new Integer(index)))
+                hs.add(new Integer(index));
+        }while(hs.size()<i);
+        return hs;
     }
     
     public double calculateReliability(ArrayList<TableEntry> t, double prob)        
@@ -130,6 +178,13 @@ public class MainClass {
     public void printTable(ArrayList<TableEntry> t)
     {
         int i=1;
+        int tr=0;
+        for(TableEntry te : t)
+        {
+            if(te.state)
+                tr++;
+        }
+        System.out.println("Total true : "+tr);
         //Now all states are calculated
         for(TableEntry te : t)
         {
@@ -139,9 +194,17 @@ public class MainClass {
     
     public static void main(String[] args) {
         MainClass m = new MainClass();
-        for(double i=0.0;i<=1;i+=0.01)
-            System.out.println("Reliability when p = "+(double)Math.round(i*100)/100+" : "+(double)Math.round(m.getReliability((double)Math.round(i*100)/100)*1000)/1000);
-    /*    int a[] = {0,1,2,3,4};
+        /*for(double i=0.0;i<=1;i+=0.01)
+        {
+            System.out.println("Reliability when p = "+(double)Math.round(i*100)/100+" : "+(double)Math.round(m.getReliability((double)Math.round(i*100)/100,1)*1000)/1000);
+            //System.out.println((double)Math.round(m.getReliability((double)Math.round(i*100)/100,1)*1000)/1000);
+        }
+        */
+        //scenario 2
+        m.getReliability(0.95, 2);
+            
+        
+        /*    int a[] = {0,1,2,3,4};
         m.getAllCombinations(a, 4, "");
         System.out.println(m.combinations);
         Edge e = new Edge(g.vertices.get(0), g.vertices.get(4), 0.1, 1);
